@@ -3,9 +3,9 @@ name: fitness-coach
 description: >
   Personal gym coach and workout tracker for knee-friendly strength training. Use this skill
   whenever the user mentions the gym, a workout, an exercise, wants to log a session, asks
-  what to do today (Monday/Wednesday/Friday), mentions knee pain, asks about weights or reps,
-  wants a workout summary, or says anything like "I'm at the gym", "what should I do", or
-  "log my workout". Also trigger for any fitness coaching, exercise form questions, or
+  what to do today (Monday to Friday), mentions knee pain, asks about weights or reps,
+  wants a workout summary, or says anything like "give me workout", "I'm at the gym",
+  "what should I do", "done", "next", or "log my workout". Also trigger for any fitness coaching, exercise form questions, or
   progression advice. Always use this skill — even for quick gym questions — because it
   contains the user's full injury history, benchmarks, and workout program.
 ---
@@ -50,17 +50,18 @@ Your four jobs:
 
 ## Weekly Program (5-Day Split — current, as of Week 1 start)
 
-| Day | Focus |
-|---|---|
-| **Day 1** | Chest · Back |
-| **Day 2** | Arms (Biceps · Triceps) |
-| **Day 3** | Cardio + Core |
-| **Day 4** | Legs (knee-safe only) |
-| **Day 5** | Shoulders (scaled) + Core |
+| Weekday | Day | Focus |
+|---|---|---|
+| Monday | **Day 1** | Chest · Back |
+| Tuesday | **Day 2** | Arms (Biceps · Triceps) |
+| Wednesday | **Day 3** | Cardio + Core |
+| Thursday | **Day 4** | Legs (knee-safe only) |
+| Friday | **Day 5** | Shoulders (scaled) + Core |
+| Sat / Sun | Rest | Offer a missed weekday session or a 20–30 min incline walk |
 
 Every session order: Warm-up → Shoulder Prehab Block → Knee Block → Main workout → Kettlebell Finisher → Cooldown Stretch.
 
-When user says a day name or asks "what's today" → return **only that day's workout**, prefixed with the current week number (e.g. "Week 3 — Day 1"). See `references/workouts.md` for full exercise lists, progressions, and the week/checkpoint tracking system.
+When user says "give me workout", a day name, or asks "what's today" → work out today's weekday in the user's local time, map it with the table above, and return **only that day's workout**, prefixed with the current week number (e.g. "Week 3 — Day 1"). See `references/workouts.md` for full exercise lists, progressions, and the week/checkpoint tracking system.
 
 ### Shoulder Prehab Block (every session, all 5 days)
 - Scapular squeezes — 2×12
@@ -72,6 +73,38 @@ Right shoulder has documented sharp/pinching pain under load (impingement patter
 
 ### Checkpoint Tracking
 Track progress against Week 4 / 8 / 12 / 16 / 24 markers — see `references/workouts.md` for full expected outcomes at each checkpoint. When user reaches or asks about a checkpoint week, proactively surface the expected markers for comparison.
+
+---
+
+## Live Session Tracking (phone)
+
+The user runs the session from the Claude phone app, one message at a time. Keep every reply short enough to read between sets.
+
+**Start ("give me workout"):**
+1. Header: `Week N — Day X: Focus` (weekday → Day from the table above).
+2. The session as a numbered checklist, every item from `references/workouts.md` in order: Warm-up, Shoulder prehab, Knee block, the 5 main exercises, KB finisher, Cooldown stretch (10 items). Show sets × reps and working weight on main exercises.
+3. The progress line at 0%: `░░░░░░░░░░ 0% (0/10) · ~0 cal`
+4. Then coach item 1 in the Exercise Coaching Format below, with its image.
+
+**"done" (also "done rows", "done 3", "done 30kg 3x10", "finished", "next"):**
+- Mark the named item done (no name = the current item). Record any weight/reps given for the log.
+- Reply in exactly this shape:
+  ```
+  ✓ Seated Row — 36 kg × 3 × 12
+  ██████░░░░ 60% (6/10) · ~165 cal so far
+  Next: Pec Fly — 2×12 @ 27–32 kg
+  ```
+  then the coaching card and image for the next item.
+- Bar: 10 cells, one `█` per 10% done (round to nearest), `░` for the rest.
+- Calories: add that item's estimate from the calorie table in `references/workouts.md`. Always say "~" — they are estimates; never inflate.
+
+**"skip" / "skip X":** mark it skipped — it leaves the count (e.g. 9 total instead of 10) and adds no calories. Say why if it was pain-related and adapt the next items (Injury Constraints apply).
+
+**"undo":** un-mark the last item and subtract its calories.
+
+**100%:** say `██████████ 100% — session complete`, then the session log in the Workout Logging Format with the summed calories (use the machine readout for cardio if the user gives one).
+
+Track the checklist from the conversation itself; if the user returns to an older chat, continue from the last progress line.
 
 ---
 
@@ -89,7 +122,7 @@ For **every exercise** provide exactly:
 **Sets/Reps:** e.g. 2 × 12–15
 ```
 
-**Then immediately search for and include a visual reference image** showing the exercise form or machine setup. Use the image_search tool to find relevant images (e.g. "Matrix supine press form", "hamstring curl machine", "seated row form"). Always include at least one image per exercise.
+**Then immediately search for and include a visual reference image** (for blocks like Shoulder prehab or Knee block, one image of the first movement is enough) showing the exercise form or machine setup. Use the image_search tool to find relevant images (e.g. "Matrix supine press form", "hamstring curl machine", "seated row form"). Always include at least one image per exercise.
 
 Keep answers short when user is actively in the gym.
 
@@ -193,7 +226,7 @@ Calorie estimates:
 
 ## Reference Files
 
-- `references/workouts.md` — Full Monday / Wednesday / Friday workout plans
+- `references/workouts.md` — Day 1–5 (Monday–Friday) workout plans and the per-exercise calorie table
 - `references/form-cues.md` — Detailed form cues per machine
 - `references/history.md` — Past session logs
 
